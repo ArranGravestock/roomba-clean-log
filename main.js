@@ -24,14 +24,11 @@ const formatData = (data) => {
     return dataObj
 }
 
-const calculateHooverPosition = (world, directions) => {
-
+const calculateMoveSet = (world, directions) => {
     //do not alter the original data, keep functions pure
     let x = world.room.hoover.x, y = world.room.hoover.y;
-    const dirt = world.room.dirt
-    let dirtCollected = 0;
 
-    //const dirt = new Set(world.room.dirt)
+    let moveSet = {};
 
     for(let i = 0; i < directions.length; i++) {
         switch(directions.charAt(i)){
@@ -56,26 +53,49 @@ const calculateHooverPosition = (world, directions) => {
                 }
                 break;
         }
+        moveSet[i] = {x: x, y: y}
+    }
 
-        //not really efficient but it works...
-        //breaks (S)OLID principle, possible better route calculate move set as separate function
-        for(var j = 0; j < dirt.length; j++) {
-            if(dirt[j].x == x && dirt[j].y == y && !dirt[j].collected) {
-                dirt[j].collected = true
+    return moveSet
+}
+
+const calculateDirtCollected = (dirt, moves) => {
+
+    let dirtCollected = 0;
+    const movesLength = Object.keys(moves).length-1;
+
+    //const dirt = new Set(world.room.dirt)
+
+    for(var i = 0; i < dirt.length; i++) {
+        for(var j = 0; j < movesLength; j++) {
+            if(dirt[i].x == moves[j].x && dirt[i].y == moves[j].y && !dirt[i].collected) {
+                dirt[i].collected = true
                 dirtCollected++;
             }
         }
-
-        //set doesn't work... :(
-        // if(dirt.has({x: x, y: y}) {
-        //     dirtCollected++;
-        // }
     }
 
-    return {dirtCollected, x, y}
+    //set doesn't work... :(
+    // if(dirt.has({x: x, y: y}) {
+    //     dirtCollected++;
+    // }
+
+    return dirtCollected;
 }
 
+//better with async/await
 readInput('./input.txt')
 .then(data => formatData(data))
-.then(data => calculateHooverPosition(data, data.directions))
-.then(data => console.log(`${data.x} ${data.y}\n ${data.dirtCollected}`))
+.then(data => {
+        const moveSet = calculateMoveSet(data, data.directions)
+        const lastPos = moveSet[Object.keys(moveSet).length-1]
+        console.log(`${lastPos.x} ${lastPos.y}`)
+
+        const dirtPos = data.room.dirt
+        return {dirtPos, moveSet}
+    }
+)
+.then(obj => {
+    var dirt = calculateDirtCollected(obj.dirtPos, obj.moveSet)
+    console.log(dirt)
+})
